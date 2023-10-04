@@ -1,0 +1,25 @@
+{
+    "name": "pbergman/ntfy-php",
+    "description": "Library to push messages to a ntfy server",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Philip Bergman",
+            "email": "pbergman@live.nl"
+        }
+    ],
+    "require": {
+        "php": "^7.4||^8.0",
+        "symfony/cache-contracts": "^1.1||^2.4||^3.0",
+        "symfony/http-client-contracts": "^1.1||^2.4||^3.0"
+    },
+    "require-dev": {
+        "symfony/http-client": "^5.2||^6.0",
+        "symfony/cache": "^4.4||^5.0||^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PBergman\\Ntfy\\": "src/"
+        }
+    }
+}
