@@ -10,13 +10,18 @@ use PBergman\Ntfy\Exception\PublishException;
 use PBergman\Ntfy\Model\PublishParameters;
 use PBergman\Ntfy\Model\Message;
 use PBergman\Ntfy\Model\SubscribeParameters;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\Chunk\ServerSentEvent;
 use Symfony\Component\HttpClient\EventSourceHttpClient;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
-class Client
+class Client implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
     private HttpClientInterface $client;
     private ?AuthenticationInterface $auth;
     private MarshallerInterface $encoder;
@@ -26,6 +31,7 @@ class Client
         $this->client  = $client;
         $this->auth    = $auth;
         $this->encoder = $encoder ?? new Marshaller();
+        $this->logger  = new NullLogger();
     }
 
     private function handle(ResponseInterface $response): Message
@@ -45,7 +51,7 @@ class Client
     }
 
     /** @return \Generator|Message[] */
-    public function subscribe(string $topic, SubscribeParameters $params): \Generator
+    public function subscribe(string $topic, SubscribeParameters $params, ?int $timeout = null): \Generator
     {
         $opts   = ['headers' => $this->encoder->marshall($params)];
         $client = $this->client;
@@ -58,9 +64,42 @@ class Client
             $client = new EventSourceHttpClient($client);
         }
 
-        foreach ($client->stream($client->connect($topic . '/sse', $opts), 2) as $chunk) {
-            if ($chunk instanceof ServerSentEvent && null !== $data = \json_decode($chunk->getData(), true)) {
-                yield $this->encoder->unmarshall($data);
+        $source = $client->connect($topic . '/sse', $opts);
+        $retry  = 0;
+
+        foreach ($client->stream($source, $timeout) as $r => $chunk) {
+
+            try {
+                if ($chunk->isTimeout()) {
+                    if (null !== $err = $chunk->getError()) {
+                        $this->logger->notice($err);
+                    }
+                    continue;
+                }
+
+                if ($chunk->isLast()) {
+                    $this->logger->debug('Connection closed');
+                    return;
+                }
+
+                if ($chunk instanceof ServerSentEvent) {
+                    $this->logger->debug(sprintf('New server-sent event %s of type %s', $chunk->getId(), $chunk->getType()));
+                    if ('message' === $chunk->getType()) {
+                        try {
+                            if (null !== $data = \json_decode($chunk->getData(), null, 4, JSON_THROW_ON_ERROR|JSON_OBJECT_AS_ARRAY)) {
+                                yield $this->encoder->unmarshall($data);
+                            }
+                        }catch (\JsonException $e) {
+                            $this->logger->error(sprintf('Failed to decode server-sent event data: %s', $e->getMessage()));
+                        }
+                    }
+                }
+
+            } catch (TransportExceptionInterface $e) {
+                if (++$retry > 5) {
+                    throw $e;
+                }
+                $this->logger->notice(sprintf('Network error, %s', $e->getMessage()), ['retry' => $retry]);
             }
         }
     }
@@ -90,7 +129,7 @@ class Client
         return new AsyncPublishResponse(
             $this->client->request('POST', $topic, $opts),
             \Closure::bind(
-                function(ResponseInterface $response) {
+                function(ResponseInterface $response){
                     return $this->handle($response);
                 },
                 $this

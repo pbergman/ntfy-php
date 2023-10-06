@@ -73,7 +73,7 @@ $params = new SubscribeParameters();
 $params->setSince('all');
 
 foreach ($client->subscribe('test', $params) as $response) {
-    printf("[%s] %s | %s\n", (new \DateTime('@' . $response->getTime()))->format(\DateTime::ATOM)), $response->getTitle(), $response->getMessage())
+    printf("[%s] %s | %s\n", (new \DateTime('@' . $response->getTime()))->format(\DateTime::ATOM), $response->getTitle(), $response->getMessage());
 }
 ```
 

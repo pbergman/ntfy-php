@@ -11,11 +11,13 @@
     "require": {
         "php": "^7.4||^8.0",
         "symfony/cache-contracts": "^1.1||^2.4||^3.0",
-        "symfony/http-client-contracts": "^1.1||^2.4||^3.0"
+        "symfony/http-client-contracts": "^1.1||^2.4||^3.0",
+        "psr/log": "^1|^2"
     },
     "require-dev": {
         "symfony/http-client": "^5.2||^6.0",
-        "symfony/cache": "^4.4||^5.0||^6.0"
+        "symfony/cache": "^4.4||^5.0||^6.0",
+        "monolog/monolog": "^1|^2"
     },
     "autoload": {
         "psr-4": {

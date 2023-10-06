@@ -37,7 +37,7 @@ class Marshaller implements MarshallerInterface
                         default:
                             $value = (string)$value;
                     }
-                    $data['x-' . ucfirst($key)] = $value;
+                    $data['x-' . $key] = $value;
                 }
                 return $data;
             });
