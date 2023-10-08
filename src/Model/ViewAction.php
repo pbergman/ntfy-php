@@ -6,7 +6,7 @@ namespace PBergman\Ntfy\Model;
 /**
  * @api https://ntfy.activin.nl/docs/publish/#open-websiteapp
  */
-class ViewAction extends AbstractActionButton
+class ViewAction extends AbstractActionButton implements UrlActionInterface
 {
     public const ACTION = 'view';
 
