@@ -115,7 +115,7 @@ class Client implements LoggerAwareInterface
         ];
 
         if (null !== $params) {
-            $opts['headers'] = $this->encoder->marshall($params, (null === $body ? [] : ['exclude' => ['message']]));
+            $opts['headers'] = $this->encoder->marshall($params, (null !== $body ? [] : ['exclude' => ['message']]));
 
             if (null === $body) {
                 $opts['body'] = $params->getMessage();
