@@ -14,6 +14,12 @@ class PublishException extends \Exception implements ExceptionInterface, HttpExc
 
     public function __construct(PublishParameters $parameters, ResponseInterface $response, string $topic, $code = 0, \Throwable $previous = null)
     {
+        $data = $response->toArray(false);
+
+        if (isset($data['code']) && $data['error']) {
+            $previous = new ErrorException($data['error'], (int)$data['code'], $data['link'] ?? '', $data['http'] ?? 0, $previous);
+        }
+
         parent::__construct('Failed to publish message on topic \'' . $topic . '\'', $code, $previous);
         $this->response   = $response;
         $this->parameters = $parameters;
