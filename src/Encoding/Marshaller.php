@@ -19,6 +19,7 @@ class Marshaller implements MarshallerInterface
     {
         if (null === $this->exporter) {
             $this->exporter = \Closure::fromCallable(function(array $ctx, \Closure $marshaller) {
+                $data       = [];
                 $hasExclude = \array_key_exists('exclude', $ctx);
                 foreach (\get_object_vars($this) as $key => $value) {
                     if (null === $value || ($hasExclude && \in_array($key, (array)$ctx['exclude']))) {
