@@ -16,7 +16,7 @@ class Message
     private ?string $title = null;
     private ?array $tags = null;
     private ?int $priority = null;
-    private ?string $clicked = null;
+    private ?string $click = null;
     private ?array $actions = null;
     private ?array $attachment = null;
 
@@ -121,14 +121,14 @@ class Message
         return $this;
     }
 
-    public function getClicked(): ?string
+    public function getClick(): ?string
     {
-        return $this->clicked;
+        return $this->click;
     }
 
-    public function setClicked(?string $clicked): self
+    public function setClick(?string $click): self
     {
-        $this->clicked = $clicked;
+        $this->click = $click;
         return $this;
     }
 
