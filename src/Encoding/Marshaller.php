@@ -26,6 +26,15 @@ class Marshaller implements MarshallerInterface
                         continue;
                     }
                     switch ($key) {
+                        case 'title':
+                        case 'message':
+                            // symfony HttpClientTrait::normalizeHeaders will check for null byte, newline and carriage return
+                            // so we encode the message when found. Using base64 and ignoring the line limit because ntfy server
+                            // is not supporting multiple headers
+                            if (false !== \strpos($value, "\x00") || false !== \strpos($value, "\x0a") || false !== \strpos($value, "\x0d")) {
+                                $value = sprintf('=?UTF-8?B?%s?=', \base64_encode($value));
+                            }
+                            break;
                         case 'tags':
                         case 'priority':
                             $value = \implode(',', (array)$value);
