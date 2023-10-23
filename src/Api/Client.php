@@ -34,16 +34,26 @@ class Client implements LoggerAwareInterface
         $this->logger  = new NullLogger();
     }
 
-    private function handle(ResponseInterface $response): Message
+    private function handle(ResponseInterface $response, bool $unmarshall = true): ?Message
     {
         try {
-            return $this->encoder->unmarshall($response->toArray());
+
+            if ($unmarshall) {
+                return $this->encoder->unmarshall($response->toArray());
+            }
+
+            // just calling headers to make sure we have a
+            // response that will indicate a successfully
+            // or failed request
+            $response->getHeaders();
+
+            return null;
         } catch (\Exception $e) {
 
             $ctx = $response->getInfo('user_data');
 
-            if (null !== $ctx && \array_key_exists('publish_parameters', $ctx)) {
-                throw new PublishException($ctx['publish_parameters'], $response, $ctx['publish_topic'] ?? $response->getInfo('url'), 500, $e);
+            if (null !== $ctx && (\array_key_exists('publish', $ctx) && $ctx['publish'] instanceof PublishRequestContext)) {
+                throw new PublishException($ctx['publish'], $response, 500, $e);
             }
 
             throw $e;
@@ -96,10 +106,12 @@ class Client implements LoggerAwareInterface
                 }
 
             } catch (TransportExceptionInterface $e) {
+
                 if (++$retry > 5) {
                     throw $e;
                 }
-                $this->logger->notice(sprintf('Network error, %s', $e->getMessage()), ['retry' => $retry]);
+
+                $this->logger->notice(sprintf('Network error (%d/5), %s', $retry, $e->getMessage()));
             }
         }
     }
@@ -109,13 +121,12 @@ class Client implements LoggerAwareInterface
         $opts = [
             'body'      => $body,
             'user_data' => [
-                'publish_topic'      => $topic,
-                'publish_parameters' => $params,
+                'publish' => new PublishRequestContext($topic, $params)
             ]
         ];
 
         if (null !== $params) {
-            $opts['headers'] = $this->encoder->marshall($params, (null !== $body ? [] : ['exclude' => ['message']]));
+            $opts['headers'] = $this->encoder->marshall($params, (null === $body ?  ['exclude' => ['message']] : []));
 
             if (null === $body) {
                 $opts['body'] = $params->getMessage();
